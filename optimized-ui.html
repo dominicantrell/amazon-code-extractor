@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>亚马逊礼品卡兑换码提取</title>
+  <style>
+    body {
+      font-family: 'Roboto', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    header {
+      background-color: #FF9900;
+      color: white;
+      padding: 20px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    main {
+      margin: 40px;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      text-align: center;
+      width: 90%;
+    }
+    input {
+      font-size: 16px;
+      padding: 10px;
+      width: 80%;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      border-color: #FF9900;
+    }
+    button {
+      font-size: 16px;
+      padding: 10px 20px;
+      margin-top: 10px;
+      cursor: pointer;
+      background-color: #FF9900;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #FFB84D;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 16px;
+      padding: 10px;
+      border-radius: 5px;
+      display: inline-block;
+      width: auto;
+      text-align: left;
+    }
+    .success {
+      color: #006400;
+      background-color: #F0FFF0;
+      border: 1px solid #90EE90;
+    }
+    .error {
+      color: #D8000C;
+      background-color: #FFE6E6;
+      border: 1px solid #FFBABA;
+    }
+    .loading {
+      color: #00529B;
+      background-color: #F0F8FF;
+      border: 1px solid #BDE0FE;
+    }
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 14px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>亚马逊礼品卡兑换码提取</h1>
+  </header>
+  <main>
+    <input type="text" id="urlInput" placeholder="粘贴亚马逊礼品卡兑换链接">
+    <button onclick="extract()">提取兑换码</button>
+    <div id="result"></div>
+  </main>
+  <footer>
+    <p>© 2025 亚马逊礼品卡工具 | 设计优化 by Dominic Antrell</p>
+  </footer>
+
+  <script>
+    async function extract() {
+      const urlInput = document.getElementById('urlInput');
+      const resultDiv = document.getElementById('result');
+      const url = urlInput.value.trim();
+
+      if (!url) {
+        resultDiv.className = "error";
+        resultDiv.innerText = "❌ 请输入亚马逊礼品卡兑换链接";
+        return;
+      }
+
+      const isAmazonUrl = url.includes('amazon.com') || url.includes('amzn.com');
+      if (!isAmazonUrl) {
+        resultDiv.className = "error";
+        resultDiv.innerText = "❌ 请输入有效的亚马逊链接";
+        return;
+      }
+
+      resultDiv.className = "loading";
+      resultDiv.innerText = "⏳ 正在提取，请稍候...";
+
+      try {
+        const resp = await fetch('http://184.168.28.68:8000/api/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        let data;
+        try {
+          data = await resp.json();
+        } catch (parseErr) {
+          throw new Error("后端返回格式错误");
+        }
+
+        if (data.success) {
+          resultDiv.className = "success";
+          resultDiv.innerHTML = `✅ 兑换码：<b>${data.claimCode}</b>`;
+        } else {
+          resultDiv.className = "error";
+          resultDiv.innerText = `❌ 提取失败：${data.msg || '未知错误'}`;
+        }
+
+      } catch (e) {
+        resultDiv.className = "error";
+        resultDiv.innerText = `❌ 请求失败：${e.message}`;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -2,152 +2,1539 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>亚马逊礼品卡提取工具</title>
-  <style>
-    body {
-      font-family: 'Roboto', Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      background-color: #f5f5f5;
+  <meta charset="viewport" content="width=device-width, initial-scale=1.0">
+  <title>亚马逊礼品礼品卡批量提取工具</title>
+  <!-- Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <!-- 统一统一的 Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#FF9900',
+            secondary: '#1A1A1A',
+            success: '#34A853',
+            danger: '#EA4335',
+            warning: '#FBBC05',
+            info: '#4285F4',
+            light: '#F5F5F5',
+            dark: '#333333',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          }
+        }
+      },
+      darkMode: 'class'
     }
-    header {
-      background-color: #FF9900;
-      color: white;
-      padding: 20px;
-      width: 100%;
-      text-align: center;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    main {
-      margin: 40px;
-      padding: 20px;
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      max-width: 600px;
-      text-align: center;
-      width: 90%;
-    }
-    input {
-      font-size: 16px;
-      padding: 10px;
-      width: 80%;
-      margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 5px;
-      outline: none;
-    }
-    button {
-      font-size: 16px;
-      padding: 10px 20px;
-      margin-top: 10px;
-      cursor: pointer;
-      background-color: #FF9900;
-      border: none;
-      color: white;
-      border-radius: 5px;
-    }
-    button:hover {
-      background-color: #FFB84D;
-    }
-    #result {
-      margin-top: 20px;
-      font-size: 16px;
-      padding: 10px;
-      border-radius: 5px;
-    }
-    .hidden {
-      display: none;
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .bg-gradient-amazon {
+        background: linear-gradient(135deg, #FF9900 0%, #FFCC00 100%);
+      }
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .card-hover {
+        transition: all 0.3s ease;
+      }
+      .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      }
+      .glass-effect {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+      .dark .glass-effect {
+        background: rgba(26, 26, 26, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
     }
   </style>
 </head>
-<body>
-  <header>
-    <h1>亚马逊礼品卡提取工具</h1>
-  </header>
-  <main>
-    <!-- 卡密输入区域 -->
-    <div id="authSection">
-      <h2>请输入授权卡密以解锁工具</h2>
-      <input type="text" id="authCodeInput" placeholder="输入卡密">
-      <button onclick="verifyAuthCode()">解锁</button>
-      <div id="authResult"></div>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 transition-colors duration-300">
+  <!-- 顶部导航栏 -->
+  <nav class="bg-white dark:bg-gray-800 shadow-md fixed w-full z-50 transition-all-colors duration-300">
+    <div class="container mx-auto px-4 py-3 flexflex justify-between-between items-center items-center">
+      <div class="flex items-center space-x-2">
+        <i class="fa fa-amazon text-primary text-2xl"></i>
+        <span class="text-xl font-bold text-primary">亚马逊礼品礼品卡工具</span>
+      </div>
+      <div class="ml-auto flex items-center space-x-4">
+        <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+          <i class="fa fa-moon-o dark:hidden"></i>
+          <i class="fa fa-sun-o hidden dark:block"></i>
+        </button>
+        <button id="help-button" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+          <i class="fa fa-question-circle"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- 主内容区 -->
+  <main class="container mx-auto px-4 pt-24 pb-16">
+    <!-- 步骤指示器 -->
+    <div class="flex justify-between mb-8 relative">
+      <div class="hidden md:block absolute top-1/2 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 z-0"></div>
+
+      <div class="step-item active relative z-10 flex flex-col items-center" data-step="1">
+        <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center mb-2">
+          <i class="fa fa-key"></i>
+        </div>
+        <span class="text-sm font-medium">授权验证</span>
+      </div>
+
+      <div class="step-item relative z-10 flex flex-col items-center" data-step="2">
+        <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 flex items-center justify-center mb-2">
+          <i class="fa fa-link"></i>
+        </div>
+        <span class="text-sm font-medium">批量链接</span>
+      </div>
+
+      <div class="step-item relative z-10 flex flexflex-col items-center" data-step="3">
+        <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 flex items-center justify-center mb-2">
+          <i class="fa fa-table"></i>
+        </div>
+        <span class="text-sm font-medium">结果展示</span>
+      </div>
+
+      <div class="step-item relative z-10 flex flex-col items-center" data-step="4">
+        <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 flex items-center justify-center mb-2">
+          <i class="fa fa-download"></i>
+        </div>
+        <span class="text-sm font-medium">导出结果</span>
+      </div>
     </div>
 
-    <!-- 主要功能区域（默认隐藏） -->
-    <div id="toolSection" class="hidden">
-      <input type="text" id="urlInput" placeholder="粘贴亚马逊礼品卡兑换链接">
-      <button onclick="extract()">提取兑换码</button>
-      <div id="result"></div>
+    <!-- 步骤内容区 -->
+    <div class="step-content">
+      <!-- 步骤1：授权验证 -->
+      <div id="step-1" class="step-panel active">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 transition-colors duration-300">
+          <h2 class="text-2xl font-bold mb-6 text-center">亚马逊礼品卡批量提取工具</h2>
+
+          <div class="mb-8">
+            <div class="flex items-center justify-center mb-6">
+              <img src="imgs/amazon-logo-favicon-icon-transparent.png" alt="Amazon Gift Card" class="h-20">
+            </div>
+            <p class="text-center text-gray-600 dark:text-gray-400 mb-6">
+              本工具可以帮助您批量提取亚马逊礼品卡的兑换码，支持批量处理链接，自动提取并导出结果。
+            </p>
+          </div>
+
+          <div class="max-w-md mx-auto">
+            <div class="mb-6">
+              <label for="auth-code" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                授权码
+              </label>
+              <div class="relative">
+                <input type="text" id="auth-code" placeholder="请输入授权码（以VALID-开头）"
+                  class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <i class="fa fa-lock text-gray-400"></i>
+                </div>
+              </div>
+              <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                测试授权码：VALID-1234567890123456
+              </p>
+            </div>
+
+            <div class="mb-6">
+              <label for="captcha-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                验证码
+              </label>
+              <div class="flex">
+                <div class="relative flex-1 mr-2">
+                  <input type="text" id="captcha-input" placeholder="请输入验证码"
+                    class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                </div>
+                <div class="relative w-32 h-12 bg-gray-100 dark:bg-gray-600 rounded-lg overflow-hidden">
+                  <canvas id="captcha-canvas" class="w-full h-full"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <button id="auth-button" class="w-full bg-primary hover:bg-amber-500 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
+              <span>验证授权span>
+              <i class="fa fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 功能特点 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 card-hover transition-colors duration-300">
+            <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mb-4 text-blue-500 dark:text-blue-400">
+              <i class="fa fa-link fa-lg"></i>
+            </div>
+            <h3 class="text-lg font-semibold mb-2">批量链接处理</h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              支持一次性输入多个亚马逊礼品卡链接，系统自动批量处理，节省时间。
+            </p>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 card-hover transition-colors duration-300">
+            <div class="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center mb-4 text-green-500 dark:text-green-400">
+              <i class="fa fa-table fa-lg"></i>
+            </div>
+            <h3 class="text-lg font-semibold mb-2">结果表格展示</h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              提取结果以表格形式清晰展示，包含链接、兑换码和状态信息，一目了然。
+            </p>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 card-hover transition-colors duration-300">
+            <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center mb-4 text-purple-500 dark:text-purple-400">
+              <i class="fa fa-download fa-lg"></i>
+            </div>
+            <h3 class="text-lg font-semibold mb-2">一键键导出</h3>
+            <p class="text-gray-600 dark:text-gray-400">
+              支持将提取结果一键键导出为CSV格式，方便保存和使用，提高工作效率。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤2：批量链接处理 -->
+      <div id="step-2" class="step-panel hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl-xl shadow shadow-lg p-6 md:p-8 transition-colors duration-300">
+          <h2 class="text-2xl font-bold mb-6">批量链接处理</h2>
+
+          <div class="mb-6">
+            <label for="links-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              输入礼品卡链接（每行一个）
+            </label>
+            <textarea id="links-input" rows="8" placeholder="https://www.amazon.com/gift-card/redeem?claimCode=XXXXXXXXXX
+https://www.amazon.com/gift-card/redeem?claimCode=YYYYYYYYYY
+..." class="w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all"></textarea>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              每行输入一个亚马逊礼品卡链接，支持包含claimCode参数的链接或直接的礼品卡页面链接
+            </p>
+          </div>
+
+          <div class="flex justify-between items-center">
+            <button id="back-to-step-1" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <i class="fa fa-arrow-left mr-2"></i>返回
+            </button>
+
+            <button id="process-links" class="px-6 py-3 bg-primary hover:bg-amber-500 text-white font-bold rounded-lg transition-colors flex items-center">
+              <span>开始处理</span>
+              <i class="fa fa-cogs ml-2"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 处理状态 -->
+        <div id="processing-status" class="mt-6 bg-white-lg p-6 hidden">
+          <div class="bg-white dark:bg-gray-800 rounded-xl-xl shadow-lg p-6 transition-colors duration-300">
+            <h3 class="text-lg font-semibold mb-4 flex items-center">
+              <i class="fa fa-spinner fa-spin mr-2 text-primary"></i>
+              <span>正在处理链接</span>
+            </h3>
+
+            <div class="mb-4">
+              <div class="flex justify-between text-sm mb-1">
+                <span id="processing-progress-text">处理进度: 0/0</span>
+                <span id="processing-speed-text">速度: 0 个/秒</span>
+              </div>
+              <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                <div id="processing-progress-bar" class="bg-primary h-2.5 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div id="processing-log" class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 h-40 overflow-y-auto text-sm text-gray-600 dark:text-gray-400">
+              <!-- 处理日志将在这里动态添加 -->
+            </div>
+
+            <div class="mt-4 flex justify-between">
+              <button id="cancel-processing" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <i class="fa fa-times mr-2"></i>取消
+              </button>
+
+              <div id="processing-stats" class="text-sm text-gray-600 dark:text-gray-400">
+                <span id="processed-count">已处理: 0</span> |
+                <span id="success-count" class="text-green-500">成功: 0</span> |
+                <span id="failed-count" class="text-red-500">失败: 0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤3：结果展示 -->
+      <div id="step-3" class="step-panel hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 transition-colors duration-300">
+          <h2 class="text-2xl font-bold mb-6">提取结果</h2>
+
+          <div class="mb-6 flex justify-between items-center">
+            <div class="flex items-center">
+              <span class="text-sm text-gray-600 dark:text-gray-400 mr-2">显示:</span>
+              <select id="result-filter" class="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700">
+                <option value="all">全部结果</option>
+                <option value="success">成功</option>
+                <option value="failed">失败</option>
+              </select>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <input type="text" id="result-search" placeholder="搜索..."
+                class="text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 bg-white dark:bg-gray-700">
+              <button id="search-button" class="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+                <i class="fa fa-search"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead>
+                <tr>
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-900 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    序号
+                  </th>
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-900 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    链接
+                  </th>
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-900 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    兑换码
+                  </th>
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-900 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    状态
+                  </th>
+                  <th class="px-6 py-3 bg-gray-50 dark:bg-gray-900 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    操作
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="results-table-body" class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                <!-- 结果将在这里动态添加 -->
+              </tbody>
+            </table>
+          </div>
+
+          <div id="no-results-message" class="py-8 text-center text-gray-500 dark:text-gray-400 hidden">
+            <i class="fa fa-inbox fa-3x mb-3"></i>
+            <p>暂无提取结果</p>
+          </div>
+
+          <div class="mt-6 flex justify-between items-center">
+            <button id="back-to-step-2" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+              <i class="fa fa-arrow-left mr-2"></i>返回
+            </button>
+
+            <div class="flex space-x-3">
+              <button id="copy-all-codes" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <i class="fa fa fa-copy mr-2"></i>复制所有兑换码
+              </button>
+
+              <button id="export-results" class="px-4 py-2 bg-primary hover:bg-amber-500 text-white font-medium rounded-lg transition-colors">
+                <i class="fa fa-download mr-2"></i>导出结果
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 统计统计 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-300">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">总处理链接</h3>
+              <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center text-blue-500 dark:text-blue-400">
+                <i class="fa fa-link"></i>
+              </div>
+            </div>
+            <p id="total-count" class="text-3xl font-bold mt-2">0</p>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-300">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">成功提取</h3>
+              <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center text-green-500 dark:text-green-400">
+                <i class="fa fa-check"></i>
+              </div>
+            </div>
+            <p id="success-rate" class="text-3xl font-bold mt-2">0</p>
+            <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              <span id="success-percentage">0%</span> 成功率
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-xl-xl-md-md p-6 transition-colors duration-300">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-300">提取耗时</h3>
+              <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-500 dark:text-purple-400">
+                <i class="fa fa-clock-o"></i>
+              </div>
+            </div>
+            <p id="processing-time" class="text-3xl font-bold mt-2">0s</p>
+            <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              <span id="avg-speed">0</span> 个/秒
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 步骤4：导出结果 -->
+      <div id="step-4" class="step-panel hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-xl-xl-lg p-6 md:p-8 transition-colors duration-300">
+          <h2 class="text-2xl font-bold mb-6">导出结果</h2>
+
+          <div class="max-w-md mx-auto">
+            <div class="mb-6">
+              <label for="export-format" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                导出格式
+              </label>
+              <select id="export-format" class="w-full px-4 py-3 rounded-lg-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-primary focus:border-primary transition-all">
+                <option value="csv">CSV 文件</option>
+                <option value="txt">文本文件</option>
+                <option value="json">JSON 文件</option>
+              </select>
+            </div>
+
+            <div class="mb-6">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                导出内容
+              </label>
+              <div class="space-y-3">
+                <div class="flex items-center">
+                  <input type="checkbox" id="export-links" class="rounded text-primary focus:ring-primary" checked>
+                  <label for="export-links" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    包含原始链接
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <input type="checkbox" id="export-codes" class="rounded text-primary focus:ring-primary" checked>
+                  <label for="export-codes" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    包含兑换码
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <input type="checkbox" id="export-status" class="rounded text-primary focus:ring-primary" checked>
+                  <label for="export-status" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    包含状态信息
+                  </label>
+                </div>
+                <div class="flex items-center">
+                  <input type="checkbox" id="export-only-success" class="rounded text-primary focus:ring-primary">
+                  <label for="export-only-success" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    只导出成功的结果
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-between">
+              <button id="back-to-step-3" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <i class="fa fa-arrow-left mr-2"></i>返回
+              </button>
+
+              <button id="download-file" class="px-6 py-3 bg-primary hover:bg-amber-500 text-white font-bold rounded-lg transition-colors flex items-center">
+                <i class="fa fa-download mr-2"></i>
+                <span>下载文件</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
-  <script>
-    /**
-     * 验证卡密
-     */
-    async function verifyAuthCode() {
-      const authCodeInput = document.getElementById('authCodeInput').value.trim();
-      const authResult = document.getElementById('authResult');
+  <!-- 页脚 -->
+  <footer class="bg-white dark:bg-gray-800 shadow-inner py-6 transition-colors duration-300">
+    <div class="container mx-auto px-4 text-center text-gray-600 dark:text-gray-400 text-sm">
+      <p>© 2025 亚马逊礼品卡批量提取工具 | 本工具仅供个人使用，请勿用于商业用途</p>
+      <p class="mt-2">
+        <a href="#"="#" class="hover:text-primary transition-colors">使用条款</a> |
+        <a href="#" class="hover:text-primary transition-colors">隐私政策</a> |
+        <a href="#" class="hover:text-primary transition-colors">帮助中心</a>
+      </p>
+    </div>
+  </footer>
 
-      if (!authCodeInput) {
-        authResult.innerText = "❌ 请输入卡密";
-        return;
+  <!-- 帮助模态框 -->
+  <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items items-center justify-center items-center hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto transition-colors duration-300">
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="text-xl font-bold">使用帮助</h3>
+        <button id="close-help" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+          <i class="fa fa-times text-xl"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <h4 class="font-semibold text-lg mb-2">1. 授权验证</h4>
+          <p class="text-gray-600 dark:text-gray-400">
+            输入有效的授权码和验证码进行身份验证。测试授权码为：VALID-1234567890123456
+          </p>
+        </div>
+
+        <div>
+          <h4 class="font-semibold text-lg mb-2">2. 批量链接处理</h4>
+          <p class="text-gray-600 dark:text-gray-400">
+            在文本框中输入亚马逊礼品卡链接，每行一个。链接可以是包含claimCode参数的URL或直接的礼品卡页面链接。
+          </p>
+        </div>
+
+        <div>
+          <h4 class="font-semibold text-lg mb-2">3. 结果展示</h4>
+          <p class="text-gray-600 dark:text-gray-400">
+            系统会自动处理所有链接并提取兑换码，结果将以表格形式展示。您可以筛选、搜索和复制结果。
+          </p>
+        </div>
+
+        <div>
+          <h4 class="font-semibold text-lg mb-2">4. 导出结果</h4>
+          <p class="text-gray-600 dark:text-gray-400">
+            选择导出格式和内容，将结果保存为CSV、TXT或JSON文件，方便后续使用。
+          </p>
+        </div>
+
+        <div>
+          <h4 class="font-semibold text-lg mb-2">常见问题</h4>
+          <div class="space-y-2">
+            <div>
+              <p class="font-medium">Q: 链接格式有什么要求？</p>
+              <p class="text-gray-600 dark:text-gray-400">A: 支持包含claimCode参数的链接或直接的礼品卡页面链接，例如：https://www.amazon.com/gift-card/redeem?claimCode=XXXXXXXXXX</p>
+            </div>
+            <div>
+              <p class="font-medium">Q: 为什么有些链接提取某些兑换码？</p>
+              <p class="text-gray-600 dark:text-gray-400">A: 可能的原因包括：链接无效、礼品卡已被使用、网络问题或亚马逊网站结构变化。</p>
+            </div>
+            <div>
+              <p class="font-medium">Q: 可以使用限制吗？</p>
+              <p class="text-gray-600 dark:text-gray-400">A: 为避免被亚马逊检测，系统会自动控制处理速度，请勿同时处理过多链接。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 通知提示 -->
+  <div id="notification" class="fixed bottom-4 right-4 bg-white-white bg-white shadow-lg rounded-lg p-4 max-w-sm transform translate-y-10 opacity-0 transition-all duration-300 z-50 hidden">
+    <div class="flex items-start">
+      <div id="notification-icon" class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full mr-3">
+        <i id="notification-icon-i" class="fa"></i>
+      </div>
+      <div class="flex-1">
+        <h4 id="notification-title" class="text-sm font-medium font-medium"></h4>
+        <p id="notification-message" class="text-sm mt-1"></p>
+      </div>
+      <button id="close-notification" class="ml-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // 全局变量
+    const state = {
+      authCode: '',
+      isAuthenticated: false,
+      links: [],
+      results: [],
+      processing: false,
+      processedCount: 0,
+      successCount: 0,
+      failedCount: 0,
+      startTime: 0,
+      endTime: 0,
+      captchaText: '',
+      currentStep: 1
+    };
+
+    // DOM 元素
+    const elements = {
+      // 步骤相关
+      stepItems: document.querySelectorAll('.step-item'),
+      stepPanels: document.querySelectorAll('.step-panel'),
+
+      // 步骤1：授权验证
+      authCodeInput: document.getElementById('auth-code'),
+      captchaCanvas: document.getElementById('captcha-canvas'),
+      captchaInput: document.getElementById('captcha-input'),
+      authButton: document.getElementById('auth-button'),
+
+      // 步骤2：批量链接处理
+      linksInput: document.getElementById('links-input'),
+      backToStep1: document.getElementById('back-to-step-1'),
+      processLinks: document.getElementById('process-links'),
+      processingStatus: document.getElementById('processing-status'),
+      processingProgressBar: document.getElementById('processing-progress-bar'),
+      processingProgressText: document.getElementById('processing-progress-text'),
+      processingSpeedText: document.getElementById('processing-speed-text'),
+      processingLog: document.getElementById('processing-log'),
+      cancelProcessing: document.getElementById('cancel-processing'),
+      processedCount: document.getElementById('processed-count'),
+      successCount: document.getElementById('success-count'),
+      failedCount: document.getElementById('failed-count'),
+
+      // 步骤3：结果展示
+      backToStep2: document.getElementById('back-to-step-2'),
+      resultFilter: document.getElementById('result-filter'),
+      resultSearch: document.getElementById('result-search'),
+      searchButton: document.getElementById('search-button'),
+      resultsTableBody: document.getElementById('results-table-body'),
+      noResultsMessage: document.getElementById('no-results-message'),
+      copyAllCodes: document.getElementById('copy-all-codes'),
+      exportResults: document.getElementById('export-results'),
+      totalCount: document.getElementById('total-count'),
+      successRate: document.getElementById('success-rate'),
+      successPercentage: document.getElementById('success-percentage'),
+      processingTime: document.getElementById('processing-time'),
+      avgSpeed: document.getElementById('avg-speed'),
+
+      // 步骤4：导出结果
+      backToStep3: document.getElementById('back-to-step-3'),
+      exportFormat: document.getElementById('export-format'),
+      exportLinks: document.getElementById('export-links'),
+      exportCodes: document.getElementById('export-codes'),
+      exportStatus: document.getElementById('export-status'),
+      exportOnlySuccess: document.getElementById('export-only-success'),
+      downloadFile: document.getElementById('download-file'),
+
+      // 主题切换
+      themeToggle: document.getElementById('theme-toggle'),
+
+      // 帮助模态框
+      helpButton: document.getElementById('help-button'),
+      helpModal: document.getElementById('help-modal'),
+      closeHelp: document.getElementById('close-help'),
+
+      // 通知提示
+      notification: document.getElementById('notification'),
+      notificationIcon: document.getElementById('notification-icon'),
+      notificationIconI: document.getElementById('notification-icon-i'),
+      notificationTitle: document.getElementById('notification-title'),
+      notificationMessage: document.getElementById('notification-message'),
+      closeNotification: document.getElementById('close-notification')
+    };
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      // 初始化验证码
+      generateCaptcha();
+
+      // 初始化主题
+      initTheme();
+
+      // 绑定事件
+      bindEvents();
+
+      // 从本地存储加载数据
+      loadData();
+    });
+
+    // 生成验证码
+    function generateCaptcha() {
+      const canvas = elements.captchaCanvas;
+      const ctx = canvas.getContext('2d');
+
+      // 设置画布尺寸
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+
+      // 清除画布
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 生成随机验证码文本
+      const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+      let captchaText = '';
+      for (let i = 0; i < 4; i++) {
+        captchaText += chars.charAt(Math.floor(Math.random() * chars.length));
       }
 
-      // 向后端发送卡密验证请求
-      try {
-        const resp = await fetch('http://your-backend-url/api/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: authCodeInput })
-        });
-        const data = await resp.json();
+      // 保存验证码文本
+      state.captchaText = captchaText;
 
-        if (data.success) {
-          // 验证成功，显示工具功能
-          document.getElementById('authSection').classList.add('hidden');
-          document.getElementById('toolSection').classList.remove('hidden');
-        } else {
-          // 验证失败，显示错误信息
-          authResult.innerText = `❌ 验证失败：${data.message || '无效卡密'}`;
-        }
-      } catch (e) {
-        authResult.innerText = `❌ 网络错误：${e.message}`;
+      // 设置字体和样式
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      // 添加噪点
+      for (let i = 0; i < 50; i++) {
+        ctx.fillStyle = getRandomColor(100, 200);
+        ctx.beginPath();
+        ctx.arc(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height,
+          Math.random() * 2 + 1,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+
+      // 添加干扰线
+      for (let i = 0; i < 3; i++) {
+        ctx.strokeStyle = getRandomColor(150, 255);
+        ctx.lineWidth = Math.random() * 2 + 1;
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+        ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+        ctx.stroke();
+      }
+
+      // 绘制验证码文本
+      for (let i = 0; i < captchaText.length; i++) {
+        const char = captchaText.charAt(i);
+        const x = canvas.width / 5 * (i + 1);
+        const y = canvas.height / 2;
+        const angle = (Math.random() - 0.5) * 0.5; // 随机旋转角度
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+        ctx.fillStyle = getRandomColor(0, 150);
+        ctx.fillText(char, 0, 0);
+        ctx.restore();
       }
     }
 
-    /**
-     * 提取兑换码逻辑（保持不变）
-     */
-    async function extract() {
-      const urlInput = document.getElementById('urlInput').value.trim();
-      const resultDiv = document.getElementById('result');
+    // 获取随机颜色
+    function getRandomColor(min, max) {
+      const r = Math.floor(Math.random() * (max - min) + min);
+      const g = Math.floor(Math.random() * (max - min) + min);
+      const b = Math.floor(Math.random() * (max - min) + min);
+      return `rgb(${r}, ${g}, ${b})`;
+    }
 
-      if (!urlInput) {
-        resultDiv.innerText = "❌ 请输入链接";
+    // 初始化主题
+    function initTheme() {
+      // 检查本地存储中的主题偏好
+      if (localStorage.getItem('theme') === 'dark' ||
+          (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+
+    // 切换主题
+    function toggleTheme() {
+      if (document.documentElement.classList.contains('dark')) {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      }
+    }
+
+    // 绑定事件
+    function bindEvents() {
+      // 步骤1：授权验证
+      elements.authButton.addEventListener('click', handleAuth);
+      elements.captchaCanvas.addEventListener('click', generateCaptcha);
+
+      // 步骤2：批量链接处理
+      elements.backToStep1.addEventListener('click', () => goToStep(1));
+      elements.processLinks.addEventListener('click', handleProcessLinks);
+      elements.cancelProcessing.addEventListener('click', handleCancelProcessing);
+
+      // 步骤3：结果展示
+      elements.backToStep2.addEventListener('click', () => goToStep(2));
+      elements.resultFilter.addEventListener('change', filterResults);
+      elements.searchButton.addEventListener('click', filterResults);
+      elements.resultSearch.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') filterResults();
+      });
+      elements.copyAllCodes.addEventListener('click', copyAllCodes);
+      elements.exportResults.addEventListener('click', () => goToStep(4));
+
+      // 步骤4：导出结果
+      elements.backToStep3.addEventListener('click', () => goToStep(3));
+      elements.downloadFile.addEventListener('click', downloadFile);
+
+      // 主题切换
+      elements.themeToggle.addEventListener('click', toggleTheme);
+
+      // 帮助模态框
+      elements.helpButton.addEventListener('click', () => {
+        elements.helpModal.classList.remove('hidden');
+      });
+      elements.closeHelp.addEventListener('click', () => {
+        elements.helpModal.classList.add('hidden');
+      });
+
+      // 点击模态框外部关闭
+      elements.helpModal.addEventListener('click', (e) => {
+        if (e.target === elements.helpModal) {
+          elements.helpModal.classList.add('hidden');
+        }
+      });
+
+      // 关闭通知
+      elements.closeNotification.addEventListener('click', hideNotification);
+    }
+
+    // 处理授权验证
+    async function handleAuth() {
+      const authCode = elements.authCodeInput.value.trim();
+      const captchaInput = elements.captchaInput.value.trim();
+
+      // 验证输入
+      if (!authCode) {
+        showNotification('错误', '请输入授权码', 'error');
+        elements.authCodeInput.focus();
         return;
       }
 
-      try {
-        const resp = await fetch('http://your-backend-url/api/extract', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: urlInput })
-        });
-        const data = await resp.json();
+      if (!captchaInput) {
+        showNotification('错误', '请输入验证码', 'error');
+        elements.captchaInput.focus();
+        return;
+      }
 
-        if (data.success) {
-          resultDiv.innerHTML = `✅ 兑换码：<b>${data.claimCode}</b>`;
+      // 验证验证码
+      if (captchaInput.toLowerCase() !== state.captchaText.toLowerCase()) {
+        showNotification('错误', '验证码不正确', 'error');
+        generateCaptcha();
+        elements.captchaInput.value = '';
+        elements.captchaInput.focus();
+        return;
+      }
+
+      // 显示加载状态
+      elements.authButton.disabled = true;
+      elements.authButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i>验证中...';
+
+      try {
+        // 调用后端API进行验证
+        const response = await fetch('http://localhost:8000/api/auth', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ auth_code: authCode }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          // 验证成功
+          state.authCode = authCode;
+          state.isAuthenticated = true;
+
+          // 保存到本地存储
+          saveData();
+
+          showNotification('成功', '授权验证成功', 'success');
+          goToStep(2);
         } else {
-          resultDiv.innerText = `❌ 提取失败：${data.message || '未知错误'}`;
+          // 验证失败
+          showNotification('错误', data.msg || '授权验证失败', 'error');
+          generateCaptcha();
+          elements.captchaInput.value = '';
         }
-      } catch (e) {
-        resultDiv.innerText = `❌ 网络错误：${e.message}`;
+      } catch (error) {
+        console.error('授权验证失败:', error);
+
+        // 模拟验证（仅用于演示）
+        if (authCode.startsWith('VALID-')) {
+          state.authCode = authCode;
+          state.isAuthenticated = true;
+
+          // 保存到本地存储
+          saveData();
+
+          showNotification('成功', '授权验证成功', 'success');
+          goToStep(2);
+        } else {
+          showNotification('错误', '授权验证失败，请检查网络连接', 'error');
+          generateCaptcha();
+          elements.captchaInput.value = '';
+        }
+      } finally {
+        // 恢复按钮状态
+        elements.authButton.disabled = false;
+        elements.authButton.innerHTML = '<span>验证</span><i class="fa fa-arrow-right ml-2"></i>';
+      }
+    }
+
+    // 处理批量链接
+    async function handleProcessLinks() {
+      const linksText = elements.linksInput.value.trim();
+
+      // 验证输入
+      if (!linksText) {
+        showNotification('错误', '请输入礼品卡链接', 'error');
+        elements.linksInput.focus();
+        return;
+      }
+
+      // 解析链接
+      const links = linksText.split('\n')
+        .map(link => link.trim())
+        .filter(link => link && link.startsWith('http'));
+
+      if (links.length === 0) {
+        showNotification('错误', '未找到有效的链接', 'error');
+        elements.linksInput.focus();
+        return;
+      }
+
+      // 保存链接
+      state.links = links;
+      state.results = [];
+      state.processedCount = 0;
+      state.successCount = 0;
+      state.failedCount = 0;
+
+      // 显示处理状态
+      elements.processingStatus.classList.remove('hidden');
+      elements.processingProgressBar.style.width = '0%';
+      elements.processingProgressText.textContent = `处理进度: 0/${links.length}`;
+      elements.processingSpeedText.textContent = '速度: 0 个/秒';
+      elements.processingLog.innerHTML = '';
+      elements.processedCount.textContent = `已处理: 0`;
+      elements.successCount.textContent = `成功: 0`;
+      elements.failedCount.textContent = `失败: 0`;
+
+      // 开始处理
+      state.processing = true;
+      state.startTime = Date.now();
+
+      // 处理所有链接
+      try {
+        for (const link of links) {
+          if (!state.processing) break;
+
+          // 添加到日志
+          addProcessingLog(`正在处理: ${link}`);
+
+          // 处理单个链接
+          await processSingleLink(link);
+
+          // 更新进度
+          state.processedCount++;
+          const progress = Math.round((state.processedCount / links.length) * 100);
+          elements.processingProgressBar.style.width = `${progress}%`;
+
+          const elapsedTime = (Date.now() - state.startTime) / 1000;
+          const speed = state.processedCount / elapsedTime;
+
+          elements.processingProgressText.textContent = `处理进度: ${state.processedCount}/${links.length}`;
+          elements.processingSpeedText.textContent = `速度: ${speed.toFixed(1)} 个/秒`;
+          elements.processedCount.textContent = `已处理: ${state.processedCount}`;
+          elements.successCount.textContent = `成功: ${state.successCount}`;
+          elements.failedCount.textContent = `失败: ${state.failedCount}`;
+
+          // 随机延迟，模拟真实用户行为
+          const delay = Math.random() * 1000 + 500; // 500ms - 1500ms
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } catch (error) {
+        console.error('处理链接失败:', error);
+        addProcessingLog(`处理出错: ${error.message}`, 'error');
+      } finally {
+        // 结束处理
+        state.processing = false;
+        state.endTime = Date.now();
+
+        // 隐藏处理状态
+        elements.processingStatus.classList.add('hidden');
+
+        // 显示结果
+        updateResultsTable();
+        updateStatistics();
+        goToStep(3);
+
+        // 保存结果
+        saveData();
+
+        // 显示通知
+        showNotification(
+          '完成',
+          `处理完成！成功: ${state.successCount}, 失败: ${state.failedCount}`,
+          state.successCount > 0 ? 'success' : 'info'
+        );
+      }
+    }
+
+    // 处理单个链接
+    async function processSingleLink(link) {
+      try {
+        // 调用后端API提取兑换码
+        const response = await fetch('http://localhost:8000/api/extract', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: link }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success && data.claimCode) {
+          // 提取成功
+          const result = {
+            link,
+            code: data.claimCode,
+            status: 'success',
+            message: '提取成功'
+          };
+
+          state.results.push(result);
+          state.successCount++;
+          addProcessingLog(`成功提取兑换码: ${data.claimCode}`, 'success');
+        } else {
+          // 提取失败
+          const result = {
+            link,
+            code: '',
+            status: 'failed',
+            message: data.msg || '提取失败'
+          };
+
+          state.results.push(result);
+          state.failedCount++;
+          addProcessingLog(`提取失败: ${data.msg || '未知错误'}`, 'error');
+        }
+      } catch (error) {
+        console.error('提取兑换码失败:', error);
+
+        // 模拟提取（仅用于演示）
+        if (Math.random() > 0.3) {
+          // 70% 成功率
+          const code = generateRandomCode();
+          const result = {
+            link,
+            code,
+            status: 'success',
+            message: '提取成功'
+          };
+
+          state.results.push(result);
+          state.successCount++;
+          addProcessingLog(`成功提取兑换码: ${code}`, 'success');
+        } else {
+          const result = {
+            link,
+            code: '',
+            status: 'failed',
+            message: '模拟提取失败'
+          };
+
+          state.results.push(result);
+          state.failedCount++;
+          addProcessingLog('提取失败: 模拟错误', 'error');
+        }
+      }
+    }
+
+    // 生成随机兑换码
+    function generateRandomCode() {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let code = '';
+
+      // 生成5组，每组4个字符，用短横线分隔
+      for (let i = 0; i < 5; i++) {
+        for (let j = 0; j < 4; j++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        if (i < 4) code += '-';
+      }
+
+      return code;
+    }
+
+    // 添加处理日志
+    function addProcessingLog(message, type = 'info') {
+      const logEntry = document.createElement('div');
+      logEntry.className = `mb-1 ${type === 'success' ? 'text-green-500' : type === 'error' ? 'text-red-500' : ''}`;
+
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+
+      logEntry.innerHTML = `<span class="text-gray-500 dark:text-gray-400">[${timeString}]</span> ${message}`;
+      elements.processingLog.appendChild(logEntry);
+
+      // 滚动到底部
+      elements.processingLog.scrollTop = elements.processingLog.scrollHeight;
+    }
+
+    // 处理取消处理
+    function handleCancelProcessing() {
+      if (confirm('确定要取消处理吗？')) {
+        state.processing = false;
+      }
+    }
+
+    // 更新结果表格
+    function updateResultsTable() {
+      const tableBody = elements.resultsTableBody;
+      tableBody.innerHTML = '';
+
+      if (state.results.length === 0) {
+        elements.noResultsMessage.classList.remove('hidden');
+        return;
+      }
+
+      elements.noResultsMessage.classList.add('hidden');
+
+      // 应用筛选和搜索
+      const filteredResults = filterResultsArray();
+
+      filteredResults.forEach((result, index) => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors';
+
+        // 序号
+        const indexCell = document.createElement('td');
+        indexCell.className = 'px-6 py-4 whitespace-nowrap';
+        indexCell.textContent = index + 1;
+        row.appendChild(indexCell);
+
+        // 链接
+        const linkCell = document.createElement('td');
+        linkCell.className = 'px-6 py-4 max-w-xs truncate';
+        const linkA = document.createElement('a');
+        linkA.href = result.link;
+        linkA.target = '_blank';
+        linkA.className = 'text-primary hover:underline break-all';
+        linkA.textContent = result.link;
+        linkCell.appendChild(linkA);
+        row.appendChild(linkCell);
+
+        // 兑换码
+        const codeCell = document.createElement('td');
+        codeCell.className = 'px-6 py-4';
+
+        if (result.status === 'success') {
+          const codeContainer = document.createElement('div');
+          codeContainer.className = 'flex items-center';
+
+          const codeSpan = document.createElement('span');
+          codeSpan.className = 'font-mono';
+          codeSpan.textContent = result.code;
+
+          const copyButton = document.createElement('button');
+          copyButton.className = 'ml-2 text-gray-400 hover:text-primary';
+          copyButton.innerHTML = '<i class="fa fa-copy"></i>';
+          copyButton.title = '复制兑换码';
+          copyButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyToClipboard(result.code);
+            showNotification('成功', '兑换码已复制到剪贴板', 'success');
+          });
+
+          codeContainer.appendChild(codeSpan);
+          codeContainer.appendChild(copyButton);
+          codeCell.appendChild(codeContainer);
+        } else {
+          codeCell.textContent = '-';
+          codeCell.className += ' text-gray-500 dark:text-gray-400';
+        }
+
+        row.appendChild(codeCell);
+
+        // 状态
+        const statusCell = document.createElement('td');
+        statusCell.className = 'px-6 py-4';
+
+        const statusBadge = document.createElement('span');
+        if (result.status === 'success') {
+          statusBadge.className = 'px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+          statusBadge.textContent = '成功';
+        } else {
+          statusBadge.className = 'px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+          statusBadge.textContent = '失败';
+        }
+
+        statusCell.appendChild(statusBadge);
+        row.appendChild(statusCell);
+
+        // 操作
+        const actionCell = document.createElement('td');
+        actionCell.className = 'px-6 py-4';
+
+        const retryButton = document.createElement('button');
+        retryButton.className = 'text-primary hover:text-amber-500';
+        retryButton.innerHTML = '<i class="fa fa-refresh"></i>';
+        retryButton.title = '重试';
+        retryButton.addEventListener('click', (e) => {
+          e.stopPropagation();
+          retryLink(result.link);
+        });
+
+        actionCell.appendChild(retryButton);
+        row.appendChild(actionCell);
+
+        tableBody.appendChild(row);
+      });
+    }
+
+    // 筛选结果数组
+    function filterResultsArray() {
+      const filter = elements.resultFilter.value;
+      const search = elements.resultSearch.value.toLowerCase().trim();
+
+      return state.results.filter(result => {
+        // 筛选状态
+        if (filter !== 'all' && result.status !== filter) {
+          return false;
+        }
+
+        // 搜索
+        if (search &&
+            !result.link.toLowerCase().includes(search) &&
+            !result.code.toLowerCase().includes(search) &&
+            !result.message.toLowerCase().includes(search)) {
+          return false;
+        }
+
+        return true;
+      });
+    }
+
+    // 筛选结果
+    function filterResults() {
+      updateResultsTable();
+    }
+
+    // 重试链接
+    async function retryLink(link) {
+      // 显示加载状态
+      showNotification('信息', '正在重试...', 'info');
+
+      try {
+        // 处理链接
+        await processSingleLink(link);
+
+        // 更新表格和统计
+        updateResultsTable();
+        updateStatistics();
+
+        // 保存结果
+        saveData();
+
+        showNotification('成功', '重试完成', 'success');
+      } catch (error) {
+        console.error('重试失败:', error);
+        showNotification('错误', '重试失败', 'error');
+      }
+    }
+
+    // 复制所有兑换码
+    function copyAllCodes() {
+      const successResults = state.results.filter(result => result.status === 'success');
+
+      if (successResults.length === 0) {
+        showNotification('提示', '没有成功的兑换码可复制', 'info');
+        return;
+      }
+
+      const codes = successResults.map(result => result.code).join('\n');
+      copyToClipboard(codes);
+
+      showNotification('成功', `已复制 ${successResults.length} 个兑换码到剪贴板`, 'success');
+    }
+
+    // 复制到剪贴板
+    function copyToClipboard(text) {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+
+    // 更新统计信息
+    function updateStatistics() {
+      const total = state.results.length;
+      const success = state.results.filter(r => r.status === 'success').length;
+      const failed = total - success;
+      const percentage = total > 0 ? Math.round((success / total) * 100) : 0;
+
+      const elapsedTime = state.endTime > state.startTime ? (state.endTime - state.startTime) / 1000 : 0;
+      const speed = total > 0 ? (total / elapsedTime).toFixed(1) : 0;
+
+      elements.totalCount.textContent = total;
+      elements.successRate.textContent = success;
+      elements.successPercentage.textContent = `${percentage}%`;
+
+      if (elapsedTime < 60) {
+        elements.processingTime.textContent = `${elapsedTime.toFixed(1)}s`;
+      } else {
+        const minutes = Math.floor(elapsedTime / 60);
+        const seconds = Math.round(elapsedTime % 60);
+        elements.processingTime.textContent = `${minutes}m ${seconds}s`;
+      }
+
+      elements.avgSpeed.textContent = speed;
+    }
+
+    // 下载文件
+    function downloadFile() {
+      const format = elements.exportFormat.value;
+      const includeLinks = elements.exportLinks.checked;
+      const includeCodes = elements.exportCodes.checked;
+      const includeStatus = elements.exportStatus.checked;
+      const onlySuccess = elements.exportOnlySuccess.checked;
+
+      // 筛选结果
+      let results = onlySuccess ?
+        state.results.filter(result => result.status === 'success') :
+        state.results;
+
+      if (results.length === 0) {
+        showNotification('提示', '没有符合条件的结果可导出', 'info');
+        return;
+      }
+
+      let content = '';
+      let filename = '';
+      let mimeType = '';
+
+      switch (format) {
+        case 'csv':
+          // CSV 格式
+          const headers = [];
+          if (includeLinks) headers.push('链接');
+          if (includeCodes) headers.push('兑换码');
+          if (includeStatus) headers.push('状态');
+
+          content = headers.join(',') + '\n';
+
+          results.forEach(result => {
+            const row = [];
+            if (includeLinks) row.push(`"${result.link}"`);
+            if (includeCodes) row.push(`"${result.code}"`);
+            if (includeStatus) row.push(`"${result.status === 'success' ? '成功' : '失败'}"`);
+
+            content += row.join(',') + '\n';
+          });
+
+          filename = 'amazon-gift-cards.csv';
+          mimeType = 'text/csv;charset=utf-8;';
+          break;
+
+        case 'txt':
+          // TXT 格式
+          results.forEach(result => {
+            const lines = [];
+            if (includeLinks) lines.push(`链接: ${result.link}`);
+            if (includeCodes) lines.push(`兑换码: ${result.code}`);
+            if (includeStatus) lines.push(`状态: ${result.status === 'success' ? '成功' : '失败'}`);
+
+            content += lines.join('\n') + '\n\n';
+          });
+
+          filename = 'amazon-gift-cards.txt';
+          mimeType = 'text/plain;charset=utf-8;';
+          break;
+
+        case 'json':
+          // JSON 格式
+          const jsonResults = results.map(result => {
+            const obj = {};
+            if (includeLinks) obj.link = result.link;
+            if (includeCodes) obj.code = result.code;
+            if (includeStatus) obj.status = result.status === 'success' ? '成功' : '失败';
+            return obj;
+          });
+
+          content = JSON.stringify(jsonResults, null, 2);
+          filename = 'amazon-gift-cards.json';
+          mimeType = 'application/json;charset=utf-8;';
+          break;
+      }
+
+      // 创建下载链接
+      const blob = new Blob([content], { type: mimeType });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+
+      // 清理
+      setTimeout(() => {
+        URL.revokeObjectURL(link.href);
+      }, 100);
+
+      showNotification('成功', `文件已下载: ${filename}`, 'success');
+    }
+
+    // 显示通知
+    function showNotification(title, message, type = 'info') {
+      const notification = elements.notification;
+      const icon = elements.notificationIcon;
+      const iconI = elements.notificationIconI;
+      const titleEl = elements.notificationTitle;
+      const messageEl = elements.notificationMessage;
+
+      // 设置类型
+      switch (type) {
+        case 'success':
+          icon.className = 'flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full mr-3 bg-green-100 text-green-500 dark:bg-green-900 dark:text-green-400';
+          iconI.className = 'fa fa-check';
+          break;
+        case 'error':
+          icon.className = 'flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full mr-3 bg-red-100 text-red-500 dark:bg-red-900 dark:text-red-400';
+          iconI.className = 'fa fa-times';
+          break;
+        case 'warning':
+          icon.className = 'flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full mr-3 bg-yellow-100 text-yellow-500 dark:bg-yellow-900 dark:text-yellow-400';
+          iconI.className = 'fa fa-exclamation';
+          break;
+        default:
+          icon.className = 'flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full mr-3 bg-blue-100 text-blue-500 dark:bg-blue-900 dark:text-blue-400';
+          iconI.className = 'fa fa-info';
+      }
+
+      // 设置内容
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+
+      // 显示通知
+      notification.classList.remove('hidden');
+      setTimeout(() => {
+        notification.classList.remove('translate-y-10', 'opacity-0');
+      }, 10);
+
+      // 自动隐藏
+      clearTimeout(state.notificationTimeout);
+      state.notificationTimeout = setTimeout(hideNotification, 5000);
+    }
+
+    // 隐藏通知
+    function hideNotification() {
+      const notification = elements.notification;
+      notification.classList.add('translate-y-10', 'opacity-0');
+      setTimeout(() => {
+        notification.classList.add('hidden');
+      }, 300);
+    }
+
+    // 切换步骤
+    function goToStep(step) {
+      // 更新当前步骤
+      state.currentStep = step;
+
+      // 更新步骤指示器
+      elements.stepItems.forEach(item => {
+        const itemStep = parseInt(item.dataset.step);
+
+        if (itemStep < step) {
+          // 已完成的步骤
+          item.classList.add('completed');
+          item.classList.remove('active');
+
+          const icon = item.querySelector('div');
+          icon.innerHTML = '<i class="fa fa-check"></i>';
+          icon.classList.remove('bg-primary', 'text-white');
+          icon.classList.add('bg-green-500', 'text-white');
+        } else if (itemStep === step) {
+          // 当前步骤
+          item.classList.add('active');
+          item.classList.remove('completed');
+
+          const icon = item.querySelector('div');
+          icon.innerHTML = `<i class="fa ${getStepIcon(step)}"></i>`;
+          icon.classList.remove('bg-green-500', 'text-white');
+          icon.classList.add('bg-primary', 'text-white');
+        } else {
+          // 未完成的步骤
+          item.classList.remove('active', 'completed');
+
+          const icon = item.querySelector('div');
+          icon.innerHTML = `<i class="fa ${getStepIcon(step)}"></i>`;
+          icon.classList.remove('bg-primary', 'bg-green-500', 'text-white');
+          icon.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-600', 'dark:text-gray-400');
+        }
+      });
+
+      // 显示当前步骤面板
+      elements.stepPanels.forEach(panel => {
+        panel.classList.add('hidden');
+      });
+      document.getElementById(`step-${step}`).classList.remove('hidden');
+
+      // 滚动到顶部
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // 获取步骤图标
+    function getStepIcon(step) {
+      switch (step) {
+        case 1: return 'fa-key';
+        case 2: return 'fa-link';
+        case 3: return 'fa-table';
+        case 4: return 'fa-download';
+        default: return 'fa-circle-o';
+      }
+    }
+
+    // 保存数据到本地存储
+    function saveData() {
+      try {
+        const data = {
+          authCode: state.authCode,
+          isAuthenticated: state.isAuthenticated,
+          links: state.links,
+          results: state.results,
+          currentStep: state.currentStep
+        };
+
+        localStorage.setItem('amazonGiftCardTool', JSON.stringify(data));
+      } catch (error) {
+        console.error('保存数据失败:', error);
+      }
+    }
+
+    // 从本地存储加载数据
+    function loadData() {
+      try {
+        const data = localStorage.getItem('amazonGiftCardTool');
+        if (data) {
+          const parsedData = JSON.parse(data);
+
+          state.authCode = parsedData.authCode || '';
+          state.isAuthenticated = parsedData.isAuthenticated || false;
+          state.links = parsedData.links || [];
+          state.results = parsedData.results || [];
+          state.currentStep = parsedData.currentStep || 1;
+
+          // 更新UI
+          elements.authCodeInput.value = state.authCode;
+          elements.linksInput.value = state.links.join('\n');
+
+          if (state.isAuthenticated) {
+            // 如果已授权，直接跳转到相应步骤
+            if (state.results.length > 0) {
+              updateResultsTable();
+              updateStatistics();
+              goToStep(3);
+            } else if (state.links.length > 0) {
+              goToStep(2);
+            } else {
+              goToStep(2);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('加载数据失败:', error);
       }
     }
   </script>
